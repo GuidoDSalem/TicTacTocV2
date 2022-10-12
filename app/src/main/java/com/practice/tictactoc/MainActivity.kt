@@ -43,6 +43,12 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
+                    var xWins by remember{
+                        mutableStateOf<Int>(0)
+                    }
+                    var oWins by remember{
+                        mutableStateOf<Int>(0)
+                    }
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -57,7 +63,41 @@ class MainActivity : ComponentActivity() {
                             color = MaterialTheme.colors.primary,
                             fontSize = 25.sp
                         )
-                        TicTacToc(modifier = Modifier.size(400.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            Text(
+                                text = "$xWins",
+                                color = Color.Green,
+                                style = MaterialTheme.typography.h3,
+                            )
+                            Spacer(modifier = Modifier.height(20.dp))
+                            
+                            Text(
+                                text = "$oWins",
+                                color = Color.Red,
+                                style = MaterialTheme.typography.h3,
+                            )
+                            
+                        }
+
+                        TicTacToc(
+                            modifier = Modifier.size(400.dp),
+                            onPlayerWin = {
+                                if(it is Player.X){
+                                    xWins++
+                                    winner = Player.X
+                                } else {
+                                    oWins++
+                                    winner = Player.O
+                                }
+                            },
+                            onNweRound = {
+                                winner = null
+                            }
+
+                        )
 
                         winner?.let{
                            Text(
@@ -110,6 +150,9 @@ fun TicTacToc(
             y = this.constraints.maxHeight / 3f
         )
 
+        var turns by remember{
+            mutableStateOf<Int>(0)
+        }
 
         val tablePath = Path().apply {
             moveTo(thirdOffset.x, 0f)
@@ -121,36 +164,51 @@ fun TicTacToc(
             moveTo(0f, thirdOffset.y * 2)
             lineTo(thirdOffset.x * 3, thirdOffset.y * 2)
         }
+
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(currentPlayer){
-                    detectTapGestures{
-                        if(isGameOver){
-                            return@detectTapGestures
-                        }
-                        val index: Array<Int> = getTapIndexes(it, Size(size.width.toFloat(),size.height.toFloat()))
-                        val i = index[0]
-                        val j = index[1]
-                        Log.i("BBB","[i][j] = [$i][$j]")
-                        if(gameState[i][j] == 'E'){
-                            gameState = updateGameState(gameState,i,j,currentPlayer.symbol)
-                            Log.i("CCC","gameState[$i][$j] = ${gameState[i][j]}")
-                            scope.animateFloatToOne(animations[i][j])
-                            currentPlayer = !currentPlayer
-                        }
-                        if(isGameOver(gameState)){
+                .pointerInput(currentPlayer) {
+                    detectTapGestures {
+                        if (turns >= 8) {
+                            turns = 0
                             scope.launch {
-                                onPlayerWin(currentPlayer)
                                 isGameOver = true
-                                delay(4000L)
+                                delay(3000L)
                                 isGameOver = false
                                 gameState = emptyGame()
                                 animations = emptyAnimations()
                                 onNweRound()
-
                             }
                         }
+                        turns++
+                        if (isGameOver) {
+                            return@detectTapGestures
+                        }
+                        val index: Array<Int> =
+                            getTapIndexes(it, Size(size.width.toFloat(), size.height.toFloat()))
+                        val i = index[0]
+                        val j = index[1]
+                        Log.i("BBB", "[i][j] = [$i][$j]")
+                        if (gameState[i][j] == 'E') {
+                            gameState = updateGameState(gameState, i, j, currentPlayer.symbol)
+                            Log.i("CCC", "gameState[$i][$j] = ${gameState[i][j]}")
+                            scope.animateFloatToOne(animations[i][j])
+                            currentPlayer = !currentPlayer
+                        }
+                        if (isGameOver(gameState)) {
+                            scope.launch {
+                                onPlayerWin(!currentPlayer)
+                                isGameOver = true
+                                turns = 0
+                                delay(3000L)
+                                isGameOver = false
+                                gameState = emptyGame()
+                                animations = emptyAnimations()
+                                onNweRound()
+                            }
+                        }
+
                     }
                 }
         ){
@@ -162,6 +220,7 @@ fun TicTacToc(
 
                     val center = Offset((size.width / 6f)  + j * size.width/3f, (size.height / 6f) + i * size.height/3f)
                     val outPath = Path()
+                    val outPath2 = Path()
                     if(symbol == Player.X.symbol){
                         val pathX = Path().apply {
                             moveTo(center.x - boxWidth2, center.y - boxHeight2)
@@ -169,14 +228,30 @@ fun TicTacToc(
                             moveTo(center.x + boxWidth2, center.y - boxHeight2)
                             lineTo(center.x - boxWidth2, center.y + boxHeight2)
                         }
+                        val pathX2 = Path().apply{
+                            moveTo(center.x - boxWidth2, center.y + boxHeight2)
+                            lineTo(center.x + boxWidth2, center.y - boxHeight2)
+                        }
 
                         PathMeasure().apply {
                             setPath(pathX, false)
                             getSegment(0f, animations[i][j].value * length, outPath)
                         }
+                        PathMeasure().apply {
+                            setPath(pathX2, false)
+                            getSegment(0f, animations[i][j].value * length, outPath2)
+                        }
 
                         drawPath(
                             path =outPath,
+                            color = Color.Green,
+                            style = Stroke(
+                                width = 5.dp.toPx(),
+                                cap = StrokeCap.Round
+                            )
+                        )
+                        drawPath(
+                            path =outPath2,
                             color = Color.Green,
                             style = Stroke(
                                 width = 5.dp.toPx(),
