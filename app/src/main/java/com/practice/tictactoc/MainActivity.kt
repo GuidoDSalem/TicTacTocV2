@@ -59,9 +59,9 @@ class MainActivity : ComponentActivity() {
                         }
                         Text(
                             text = "TicTacToc",
-                            style = MaterialTheme.typography.h3,
+                            style = MaterialTheme.typography.h2,
                             color = MaterialTheme.colors.primary,
-                            fontSize = 25.sp
+
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -70,14 +70,14 @@ class MainActivity : ComponentActivity() {
                             Text(
                                 text = "$xWins",
                                 color = Color.Green,
-                                style = MaterialTheme.typography.h3,
+                                style = MaterialTheme.typography.h1,
                             )
                             Spacer(modifier = Modifier.height(20.dp))
                             
                             Text(
                                 text = "$oWins",
                                 color = Color.Red,
-                                style = MaterialTheme.typography.h3,
+                                style = MaterialTheme.typography.h1,
                             )
                             
                         }
@@ -170,17 +170,6 @@ fun TicTacToc(
                 .fillMaxSize()
                 .pointerInput(currentPlayer) {
                     detectTapGestures {
-                        if (turns >= 8) {
-                            turns = 0
-                            scope.launch {
-                                isGameOver = true
-                                delay(3000L)
-                                isGameOver = false
-                                gameState = emptyGame()
-                                animations = emptyAnimations()
-                                onNweRound()
-                            }
-                        }
                         turns++
                         if (isGameOver) {
                             return@detectTapGestures
@@ -196,15 +185,18 @@ fun TicTacToc(
                             scope.animateFloatToOne(animations[i][j])
                             currentPlayer = !currentPlayer
                         }
-                        if (isGameOver(gameState)) {
+                        if (isGameOver(gameState) || turns > 8) {
                             scope.launch {
-                                onPlayerWin(!currentPlayer)
+                                if(turns <= 8){
+                                    onPlayerWin(!currentPlayer)
+                                }
                                 isGameOver = true
                                 turns = 0
                                 delay(3000L)
                                 isGameOver = false
                                 gameState = emptyGame()
                                 animations = emptyAnimations()
+                                turns = 0
                                 onNweRound()
                             }
                         }
